@@ -3,7 +3,7 @@ import time
 from ai.layers.layer_activations import ActivationReLU, ActivationLinear
 from ai.layers.layer_dense import LayerDense
 from ai.losses import LossMeanSquaredError
-from ai.optimizers import OptimizerSGD, OptimizerAdagrad, OptimizerAdam, OptimizerRMSprop
+from ai.optimizers import OptimizerSGD, OptimizerAdagrad, OptimizerAdam, OptimizerRMSprop, OptimizerGDM
 from ai.neural_network import NeuralNetwork
 
 import matplotlib.pyplot as plt
@@ -18,9 +18,10 @@ loss_function = LossMeanSquaredError()
 # Раскоментировать нужную
 
 # optimizer = OptimizerSGD(learning_rate=0.1, decay=1e-5, momentum=0.2)
+optimizer = OptimizerGDM(learning_rate=.1, decay=1e-5, momentum=.9)
 # optimizer = OptimizerRMSprop(learning_rate=0.01, decay=1e-4)
 # optimizer = OptimizerAdagrad(learning_rate=0.005, decay=1e-4)
-optimizer = OptimizerAdam(learning_rate=0.005, decay=1e-5)
+# optimizer = OptimizerAdam(learning_rate=0.005, decay=1e-5)
 
 neural_network = NeuralNetwork()
 

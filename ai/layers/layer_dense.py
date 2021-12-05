@@ -52,7 +52,7 @@ class LayerDense(LayerAbstract):
         self.dinputs = np.dot(dvalues, self.weights.T)
 
     def _initialize_weights(self, n_inputs, n_neurons):
-        self.weights = 0.1 * np.random.randn(n_inputs, n_neurons) # glorot
+        self.weights = 0.1 * np.random.randn(n_inputs, n_neurons).astype(np.float64) # glorot
 
     def _initialize_biases(self, n_neurons):
-        self.biases = np.zeros((1, n_neurons))
+        self.biases = np.zeros((1, n_neurons), dtype=np.float64)
