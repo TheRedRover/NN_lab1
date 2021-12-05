@@ -1,0 +1,3 @@
+LAYER_TYPE_ACTIVATION = "activation"
+LAYER_TYPE_COMPUTATIONAL = "computational"
+LAYER_TYPE_UNIDENTIFIED = "unidentified"
