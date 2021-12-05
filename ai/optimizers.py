@@ -15,7 +15,6 @@ class OptimizerAbstract:
         pass
 
 
-
 class OptimizerAdam(OptimizerAbstract):
     def __init__(self, learning_rate=0.001, decay=0., epsilon=1e-7, beta_1=0.9, beta_2=0.999):
         self.learning_rate = learning_rate
@@ -158,6 +157,74 @@ class OptimizerRMSprop(OptimizerAbstract):
                          (np.sqrt(layer.weight_cache) + self.epsilon)
         layer.biases += -self.current_learning_rate * layer.dbiases / \
                         (np.sqrt(layer.bias_cache) + self.epsilon)
+
+    def post_update_params(self):
+        self.iterations += 1
+
+
+class OptimizerCGF(OptimizerAbstract):
+    def __init__(self, learning_rate=0.001, decay=0., epsilon=1e-7, max_update=10):
+        self.learning_rate = learning_rate
+        self.current_learning_rate = learning_rate
+        self.decay = decay
+        self.iterations = 0
+        self.epsilon = epsilon
+        self.max_update = max_update
+
+    def pre_update_params(self):
+        if self.decay:
+            self.current_learning_rate = self.learning_rate * (1. / (1. + self.decay * self.iterations))
+
+    # Update parameters
+    def update_params(self, layer):
+        def calc_beta(dweights, dweights_prev, eps):
+            return dweights.T.dot(dweights) / (dweights_prev.T.dot(dweights_prev) + eps)
+
+        if not hasattr(layer, 'prev_dweights'):
+            layer.prev_dweights = np.zeros_like(layer.dweights)
+            layer.prev_dbiases = np.zeros_like(layer.dbiases)
+            layer.p_weights = -layer.dweights
+            layer.p_biases = -layer.dbiases
+
+        # beta_weights = np.array([calc_beta(dweight, dweight_prev, self.epsilon) for (dweight, dweight_prev) in
+        #                          zip(layer.dweights, layer.grad_prev_weights)])
+        # beta_biases = np.array([calc_beta(dweight, dweight_prev, self.epsilon) for (dweight, dweight_prev) in
+        #                         zip(layer.dbiases, layer.grad_prev_biases)])
+
+        weight_update = self.current_learning_rate * layer.p_weights
+        biases_update = self.current_learning_rate * layer.p_biases
+
+        beta_weights = calc_beta(layer.dweights, layer.prev_dweights, self.epsilon)
+        beta_biases = calc_beta(layer.dbiases, layer.prev_dbiases, self.epsilon)
+
+        layer.p_weights = -layer.dweights + beta_weights * layer.p_weights
+        layer.p_biases = -layer.dbiases + beta_biases * layer.p_biases
+
+        layer.prev_dweights = layer.dweights
+        layer.prev_dbiases = layer.dbiases
+
+        layer.weights += weight_update  # np.clip(weight_update, -self.max_update, self.max_update)
+        layer.biases += biases_update  # np.clip(biases_update, -self.max_update, self.max_update)
+        # if not hasattr(layer, 'weights_p'):
+        #     layer.weight_p = -layer.dweights
+        #     layer.bias_p = -layer.dbiases
+        #     layer.old_dweights = np.zeros_like(layer.dweights) + 1e-8
+        #     layer.old_dbiases = np.zeros_like(layer.dbiases) + 1e-8
+        #
+        # updated_weights = layer.weights + self.current_learning_rate * layer.weight_p
+        # updated_biases = layer.biases + self.current_learning_rate * layer.bias_p
+        #
+        # beta_weights = layer.dweights.T.dot(layer.dweights) / layer.old_dweights.T.dot(layer.old_dweights)
+        # beta_biases = layer.dbiases.T.dot(layer.dbiases) / layer.old_dbiases.T.dot(layer.old_dbiases)
+        #
+        # layer.weight_p = -layer.dweights + beta_weights * layer.weight_p
+        # layer.bias_p = -layer.dbiases + beta_biases * layer.bias_p
+        #
+        # layer.old_dbiases = layer.dbiases
+        # layer.old_dweights = layer.dweights
+        #
+        # layer.weights = updated_weights
+        # layer.biases = updated_biases
 
     def post_update_params(self):
         self.iterations += 1

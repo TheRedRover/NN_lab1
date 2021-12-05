@@ -1,14 +1,12 @@
 import time
 
+import matplotlib.pyplot as plt
+
 from ai.layers.layer_activations import ActivationReLU, ActivationLinear
 from ai.layers.layer_dense import LayerDense
 from ai.losses import LossMeanSquaredError
-from ai.optimizers import OptimizerSGD, OptimizerAdagrad, OptimizerAdam, OptimizerRMSprop
 from ai.neural_network import NeuralNetwork
-
-import matplotlib.pyplot as plt
-
-
+from ai.optimizers import OptimizerCGF
 from utils.lab_01_get_data import create_dataset_lab_01
 
 X, y = create_dataset_lab_01(samples=1000)
@@ -20,7 +18,8 @@ loss_function = LossMeanSquaredError()
 # optimizer = OptimizerSGD(learning_rate=0.1, decay=1e-5, momentum=0.2)
 # optimizer = OptimizerRMSprop(learning_rate=0.01, decay=1e-4)
 # optimizer = OptimizerAdagrad(learning_rate=0.005, decay=1e-4)
-optimizer = OptimizerAdam(learning_rate=0.005, decay=1e-5)
+# optimizer = OptimizerAdam(learning_rate=0.005, decay=1e-5)
+optimizer = OptimizerCGF(learning_rate=0.005, decay=1e-5)
 
 neural_network = NeuralNetwork()
 
@@ -45,7 +44,6 @@ losses = neural_network.losses
 
 plt.plot(losses.keys(), losses.values())
 plt.show()
-
 
 X_test, y_test = create_dataset_lab_01()
 predicted = neural_network.predict(X_test)
