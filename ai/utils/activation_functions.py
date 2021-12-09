@@ -5,6 +5,10 @@ def relu(x):
     return np.maximum(0, x)
 
 
+def leaky_relu(x, alpha):
+    return np.maximum(x * alpha, x)
+
+
 def linear(x):
     return x
 

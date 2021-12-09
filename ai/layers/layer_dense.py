@@ -1,7 +1,7 @@
 import numpy as np
 
-from config import LAYER_TYPE_COMPUTATIONAL
 from ai.layers.layer_abstract import LayerAbstract
+from config import LAYER_TYPE_COMPUTATIONAL
 
 
 class LayerDense(LayerAbstract):
@@ -48,11 +48,14 @@ class LayerDense(LayerAbstract):
             self.dbiases += 2 * self.bias_regularizer_l2 * \
                             self.biases
 
+        self.dweights = self.dweights.clip(-100, 100)
+        self.dbiases = self.dbiases.clip(-100, 100)
+
         # Gradient on values
         self.dinputs = np.dot(dvalues, self.weights.T)
 
     def _initialize_weights(self, n_inputs, n_neurons):
-        self.weights = 0.1 * np.random.randn(n_inputs, n_neurons) # glorot
+        self.weights = 0.1 * np.random.randn(n_inputs, n_neurons)  # glorot
 
     def _initialize_biases(self, n_neurons):
         self.biases = np.zeros((1, n_neurons))

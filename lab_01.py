@@ -2,11 +2,11 @@ import time
 
 import matplotlib.pyplot as plt
 
-from ai.layers.layer_activations import ActivationReLU, ActivationLinear
+from ai.layers.layer_activations import ActivationLinear, ActivationReLU, ActivationLeakyReLU
 from ai.layers.layer_dense import LayerDense
 from ai.losses import LossMeanSquaredError
 from ai.neural_network import NeuralNetwork
-from ai.optimizers import OptimizerCGF
+from ai.optimizers import OptimizerCGF, OptimizerSGD
 from utils.lab_01_get_data import create_dataset_lab_01
 
 X, y = create_dataset_lab_01(samples=1000)
@@ -19,19 +19,19 @@ loss_function = LossMeanSquaredError()
 # optimizer = OptimizerRMSprop(learning_rate=0.01, decay=1e-4)
 # optimizer = OptimizerAdagrad(learning_rate=0.005, decay=1e-4)
 # optimizer = OptimizerAdam(learning_rate=0.005, decay=1e-5)
-optimizer = OptimizerCGF(learning_rate=0.005, decay=1e-5)
+optimizer = OptimizerCGF(learning_rate=0.001, decay=1e-5)
 
 neural_network = NeuralNetwork()
 
-neural_network.append_layer(LayerDense(1, 64))
+neural_network.append_layer(LayerDense(1, 64, weight_regularizer_l2=0.1, bias_regularizer_l2=0.1))
 neural_network.append_layer(ActivationReLU())
-neural_network.append_layer(LayerDense(64, 64))
+neural_network.append_layer(LayerDense(64, 64, weight_regularizer_l2=0.1, bias_regularizer_l2=0.1))
 neural_network.append_layer(ActivationReLU())
-neural_network.append_layer(LayerDense(64, 64))
+neural_network.append_layer(LayerDense(64, 64, weight_regularizer_l2=0.1, bias_regularizer_l2=0.1))
 neural_network.append_layer(ActivationReLU())
-neural_network.append_layer(LayerDense(64, 64))
+neural_network.append_layer(LayerDense(64, 64, weight_regularizer_l2=0.1, bias_regularizer_l2=0.1))
 neural_network.append_layer(ActivationReLU())
-neural_network.append_layer(LayerDense(64, 1))
+neural_network.append_layer(LayerDense(64, 1, weight_regularizer_l2=0.1, bias_regularizer_l2=0.1))
 neural_network.append_layer(ActivationLinear())
 
 neural_network.set_loss_function(loss_function)

@@ -177,54 +177,38 @@ class OptimizerCGF(OptimizerAbstract):
 
     # Update parameters
     def update_params(self, layer):
-        def calc_beta(dweights, dweights_prev, eps):
-            return dweights.T.dot(dweights) / (dweights_prev.T.dot(dweights_prev) + eps)
+        def calc_beta(dweights, dweights_prev):
+            assert dweights.shape[0] == dweights.size
+            assert dweights_prev.shape[0] == dweights_prev.size
+            return dweights.dot(dweights) / (dweights_prev.dot(dweights_prev) + 1)
 
         if not hasattr(layer, 'prev_dweights'):
-            layer.prev_dweights = np.zeros_like(layer.dweights)
-            layer.prev_dbiases = np.zeros_like(layer.dbiases)
-            layer.p_weights = -layer.dweights
-            layer.p_biases = -layer.dbiases
+            layer.prev_dweights = layer.dweights.copy()
+            layer.prev_dbiases = layer.dbiases.copy()
+            layer.weight_p = np.zeros_like(-layer.dweights)
+            layer.bias_p = np.zeros_like(-layer.dbiases)
 
-        # beta_weights = np.array([calc_beta(dweight, dweight_prev, self.epsilon) for (dweight, dweight_prev) in
-        #                          zip(layer.dweights, layer.grad_prev_weights)])
-        # beta_biases = np.array([calc_beta(dweight, dweight_prev, self.epsilon) for (dweight, dweight_prev) in
-        #                         zip(layer.dbiases, layer.grad_prev_biases)])
+        weight_update = self.current_learning_rate * layer.weight_p
+        biases_update = self.current_learning_rate * layer.bias_p
 
-        weight_update = self.current_learning_rate * layer.p_weights
-        biases_update = self.current_learning_rate * layer.p_biases
+        beta_weights = np.array([calc_beta(dweight, dweight_prev) for (dweight, dweight_prev) in
+                                 zip(layer.dweights.T, layer.prev_dweights.T)])
+        beta_biases = np.array([calc_beta(dweight, dweight_prev) for (dweight, dweight_prev) in
+                                zip(layer.dbiases.T, layer.prev_dbiases.T)])
 
-        beta_weights = calc_beta(layer.dweights, layer.prev_dweights, self.epsilon)
-        beta_biases = calc_beta(layer.dbiases, layer.prev_dbiases, self.epsilon)
+        layer.weight_p = -layer.dweights + beta_weights * layer.weight_p*0
+        layer.bias_p = -layer.dbiases + beta_biases * layer.bias_p*0
 
-        layer.p_weights = -layer.dweights + beta_weights * layer.p_weights
-        layer.p_biases = -layer.dbiases + beta_biases * layer.p_biases
+        a = np.any(np.abs(layer.weight_p).flatten() > 1000)
+        # if a:
+        #     print("", end="")
+        #     pass
 
-        layer.prev_dweights = layer.dweights
-        layer.prev_dbiases = layer.dbiases
+        layer.prev_dweights = layer.dweights.copy()
+        layer.prev_dbiases = layer.dbiases.copy()
 
         layer.weights += weight_update  # np.clip(weight_update, -self.max_update, self.max_update)
         layer.biases += biases_update  # np.clip(biases_update, -self.max_update, self.max_update)
-        # if not hasattr(layer, 'weights_p'):
-        #     layer.weight_p = -layer.dweights
-        #     layer.bias_p = -layer.dbiases
-        #     layer.old_dweights = np.zeros_like(layer.dweights) + 1e-8
-        #     layer.old_dbiases = np.zeros_like(layer.dbiases) + 1e-8
-        #
-        # updated_weights = layer.weights + self.current_learning_rate * layer.weight_p
-        # updated_biases = layer.biases + self.current_learning_rate * layer.bias_p
-        #
-        # beta_weights = layer.dweights.T.dot(layer.dweights) / layer.old_dweights.T.dot(layer.old_dweights)
-        # beta_biases = layer.dbiases.T.dot(layer.dbiases) / layer.old_dbiases.T.dot(layer.old_dbiases)
-        #
-        # layer.weight_p = -layer.dweights + beta_weights * layer.weight_p
-        # layer.bias_p = -layer.dbiases + beta_biases * layer.bias_p
-        #
-        # layer.old_dbiases = layer.dbiases
-        # layer.old_dweights = layer.dweights
-        #
-        # layer.weights = updated_weights
-        # layer.biases = updated_biases
 
     def post_update_params(self):
         self.iterations += 1
