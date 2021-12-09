@@ -272,17 +272,17 @@ class OptimizerBFGS(OptimizerAbstract):
         sk = layer.weights - layer.prev_weights
         yk = layer.dweights - layer.prev_dweights
 
-        rho = 1 / (yk.T @ sk)
+        rho_inv = yk.T @ sk
+        rho = 1 / (rho_inv + 0.1)
 
-        H = layer.H
         A1 = (I - rho * (yk.T @ sk))
         A2 = (I - rho * (sk.T @ yk))
-        left = A1 @ (H @ A2)
+        left = A1 @ (layer.H @ A2)
         layer.H = left + rho * (yk.T @ yk)
 
-        weight_update = self.current_learning_rate * (-layer.H @ layer.dweights.T)
+        weight_update = self.current_learning_rate * -(layer.H @ layer.dweights.T)
 
-        layer.weights = layer.weights + weight_update.T
+        layer.weights += weight_update.T
 
         layer.prev_weights = layer.weights.copy()
         layer.prev_dweights = layer.dweights.copy()
