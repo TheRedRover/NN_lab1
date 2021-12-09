@@ -196,8 +196,8 @@ class OptimizerCGF(OptimizerAbstract):
         beta_biases = np.array([calc_beta(dweight, dweight_prev) for (dweight, dweight_prev) in
                                 zip(layer.dbiases.T, layer.prev_dbiases.T)])
 
-        layer.weight_p = -layer.dweights + beta_weights * layer.weight_p * 0
-        layer.bias_p = -layer.dbiases + beta_biases * layer.bias_p * 0
+        layer.weight_p = -layer.dweights + beta_weights * layer.weight_p
+        layer.bias_p = -layer.dbiases + beta_biases * layer.bias_p
 
         # a = np.any(np.abs(layer.weight_p).flatten() > 1000)
         # if a:
