@@ -247,3 +247,53 @@ class OptimizerGDM(OptimizerAbstract):
 
     def post_update_params(self):
         self.iterations += 1
+
+
+class OptimizerBFGS(OptimizerAbstract):
+    def __init__(self, learning_rate=0.001, decay=0., epsilon=1e-7):
+        self.learning_rate = learning_rate
+        self.current_learning_rate = learning_rate
+        self.decay = decay
+        self.iterations = 0
+        self.epsilon = epsilon
+
+    def pre_update_params(self):
+        if self.decay:
+            self.current_learning_rate = self.learning_rate * (1. / (1. + self.decay * self.iterations))
+
+    # Update parameters
+    def update_params(self, layer):
+        self._upd_stuff(layer, "weights", "dweights")
+        # self._upd_stuff(layer, "biases", "dbiases")
+
+    def _upd_stuff(self, layer, weights_name, dweights_name):
+        I = np.eye(max(getattr(layer, weights_name).shape[1], getattr(layer, weights_name).shape[0]))
+        if not hasattr(layer, f'prev_{weights_name}'):
+            setattr(layer, f"{weights_name}_H", I)
+            setattr(layer, f"prev_{weights_name}", np.zeros_like(getattr(layer, weights_name)))
+            setattr(layer, f"prev_{dweights_name}", np.zeros_like(getattr(layer, dweights_name)))
+
+        sk = getattr(layer, weights_name) - getattr(layer, f"prev_{weights_name}")
+        yk = getattr(layer, dweights_name) - getattr(layer, f"prev_{dweights_name}")
+
+        rho = 1 / (yk.T @ sk)
+
+        H = getattr(layer, f"{weights_name}_H")
+        mul_left = (I - rho * (yk @ sk.T))
+        mul_right = (I - rho * (sk @ yk.T))
+        left = mul_left @ H @ mul_right
+        new_H = left + rho * (yk @ yk.T)
+        setattr(layer, f"{weights_name}_H", new_H)
+
+        H = getattr(layer, f"{weights_name}_H")
+        dweights = getattr(layer, dweights_name)
+        weight_update = self.current_learning_rate * -(H @ dweights.T)
+
+        new_w = getattr(layer, weights_name) + weight_update.T
+        setattr(layer, weights_name, new_w)
+
+        setattr(layer, f"prev_{weights_name}", getattr(layer, weights_name).copy())
+        setattr(layer, f"prev_{dweights_name}", getattr(layer, dweights_name).copy())
+
+    def post_update_params(self):
+        self.iterations += 1
