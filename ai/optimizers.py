@@ -196,8 +196,8 @@ class OptimizerCGF(OptimizerAbstract):
         beta_biases = np.array([calc_beta(dweight, dweight_prev) for (dweight, dweight_prev) in
                                 zip(layer.dbiases.T, layer.prev_dbiases.T)])
 
-        layer.weight_p = -layer.dweights + beta_weights * layer.weight_p*0
-        layer.bias_p = -layer.dbiases + beta_biases * layer.bias_p*0
+        layer.weight_p = -layer.dweights + beta_weights * layer.weight_p * 0
+        layer.bias_p = -layer.dbiases + beta_biases * layer.bias_p * 0
 
         # a = np.any(np.abs(layer.weight_p).flatten() > 1000)
         # if a:
@@ -212,6 +212,7 @@ class OptimizerCGF(OptimizerAbstract):
 
     def post_update_params(self):
         self.iterations += 1
+
 
 class OptimizerGDM(OptimizerAbstract):
     def __init__(self, learning_rate=0.001, decay=0., momentum=0.):
