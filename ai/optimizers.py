@@ -199,7 +199,7 @@ class OptimizerCGF(OptimizerAbstract):
         layer.weight_p = -layer.dweights + beta_weights * layer.weight_p*0
         layer.bias_p = -layer.dbiases + beta_biases * layer.bias_p*0
 
-        a = np.any(np.abs(layer.weight_p).flatten() > 1000)
+        # a = np.any(np.abs(layer.weight_p).flatten() > 1000)
         # if a:
         #     print("", end="")
         #     pass
