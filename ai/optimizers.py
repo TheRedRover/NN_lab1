@@ -263,37 +263,29 @@ class OptimizerBFGS(OptimizerAbstract):
 
     # Update parameters
     def update_params(self, layer):
-        self._upd_stuff(layer, "weights", "dweights")
-        # self._upd_stuff(layer, "biases", "dbiases")
+        I = np.eye(layer.weights.shape[1])
+        if not hasattr(layer, f'prev_weights'):
+            layer.H = I
+            layer.prev_weights = np.zeros_like(layer.weights)
+            layer.prev_dweights = np.zeros_like(layer.dweights)
 
-    def _upd_stuff(self, layer, weights_name, dweights_name):
-        I = np.eye(max(getattr(layer, weights_name).shape[1], getattr(layer, weights_name).shape[0]))
-        if not hasattr(layer, f'prev_{weights_name}'):
-            setattr(layer, f"{weights_name}_H", I)
-            setattr(layer, f"prev_{weights_name}", np.zeros_like(getattr(layer, weights_name)))
-            setattr(layer, f"prev_{dweights_name}", np.zeros_like(getattr(layer, dweights_name)))
-
-        sk = getattr(layer, weights_name) - getattr(layer, f"prev_{weights_name}")
-        yk = getattr(layer, dweights_name) - getattr(layer, f"prev_{dweights_name}")
+        sk = layer.weights - layer.prev_weights
+        yk = layer.dweights - layer.prev_dweights
 
         rho = 1 / (yk.T @ sk)
 
-        H = getattr(layer, f"{weights_name}_H")
-        mul_left = (I - rho * (yk @ sk.T))
-        mul_right = (I - rho * (sk @ yk.T))
-        left = mul_left @ H @ mul_right
-        new_H = left + rho * (yk @ yk.T)
-        setattr(layer, f"{weights_name}_H", new_H)
+        H = layer.H
+        A1 = (I - rho * (yk.T @ sk))
+        A2 = (I - rho * (sk.T @ yk))
+        left = A1 @ (H @ A2)
+        layer.H = left + rho * (yk.T @ yk)
 
-        H = getattr(layer, f"{weights_name}_H")
-        dweights = getattr(layer, dweights_name)
-        weight_update = self.current_learning_rate * -(H @ dweights.T)
+        weight_update = self.current_learning_rate * (-layer.H @ layer.dweights.T)
 
-        new_w = getattr(layer, weights_name) + weight_update.T
-        setattr(layer, weights_name, new_w)
+        layer.weights = layer.weights + weight_update.T
 
-        setattr(layer, f"prev_{weights_name}", getattr(layer, weights_name).copy())
-        setattr(layer, f"prev_{dweights_name}", getattr(layer, dweights_name).copy())
+        layer.prev_weights = layer.weights.copy()
+        layer.prev_dweights = layer.dweights.copy()
 
     def post_update_params(self):
         self.iterations += 1
