@@ -1,7 +1,9 @@
 import numpy as np
 
 from ai.neural_network import NeuralNetwork
+from ai.weak_wolfe import weak_wolfe
 from config import LAYER_TYPE_COMPUTATIONAL
+
 
 class OptimizerAbstract:
     def __init__(self, network: NeuralNetwork, learning_rate: float, *args, **kwargs):
@@ -115,19 +117,19 @@ class OptimizerSGD(OptimizerAbstract):
         if self.momentum:
             if not hasattr(layer, 'weight_momentums'):
                 layer.weight_momentums = np.zeros_like(layer.weights)
-                layer.bias_momentums = np.zeros_like(layer.biases)
+                # layer.bias_momentums = np.zeros_like(layer.biases)
 
             weight_updates = self.momentum * layer.weight_momentums - self.current_learning_rate * layer.dweights
             layer.weight_momentums = weight_updates
 
-            bias_updates = self.momentum * layer.bias_momentums - self.current_learning_rate * layer.dbiases
-            layer.bias_momentums = bias_updates
+            # bias_updates = self.momentum * layer.bias_momentums - self.current_learning_rate * layer.dbiases
+            # layer.bias_momentums = bias_updates
         else:
             weight_updates = -self.current_learning_rate * layer.dweights
-            bias_updates = -self.current_learning_rate * layer.dbiases
+            # bias_updates = -self.current_learning_rate * layer.dbiases
 
         layer.weights += weight_updates
-        layer.biases += bias_updates
+        # layer.biases += bias_updates
 
     def post_update_params(self):
         self.iterations += 1
@@ -210,26 +212,18 @@ class OptimizerCGF(OptimizerAbstract):
 
         if not hasattr(layer, 'prev_dweights'):
             layer.prev_dweights = layer.dweights.copy()
-            layer.prev_dbiases = layer.dbiases.copy()
             layer.weight_p = np.zeros_like(-layer.dweights)
-            layer.bias_p = np.zeros_like(-layer.dbiases)
 
         weight_update = self.current_learning_rate * layer.weight_p
-        biases_update = self.current_learning_rate * layer.bias_p
 
         beta_weights = np.array([calc_beta(dweight, dweight_prev) for (dweight, dweight_prev) in
                                  zip(layer.dweights.T, layer.prev_dweights.T)])
-        beta_biases = np.array([calc_beta(dweight, dweight_prev) for (dweight, dweight_prev) in
-                                zip(layer.dbiases.T, layer.prev_dbiases.T)])
 
         layer.weight_p = -layer.dweights + beta_weights * layer.weight_p
-        layer.bias_p = -layer.dbiases + beta_biases * layer.bias_p
 
         layer.prev_dweights = layer.dweights.copy()
-        layer.prev_dbiases = layer.dbiases.copy()
 
-        layer.weights += weight_update  # np.clip(weight_update, -self.max_update, self.max_update)
-        layer.biases += biases_update  # np.clip(biases_update, -self.max_update, self.max_update)
+        layer.weights += weight_update
 
     def post_update_params(self):
         self.iterations += 1
@@ -250,20 +244,12 @@ class OptimizerGDM(OptimizerAbstract):
     def update_params(self, layer):
         if not hasattr(layer, 'weight_momentums'):
             layer.weight_momentums = np.zeros_like(layer.weights)
-            layer.bias_momentums = np.zeros_like(layer.biases)
 
-        weight_updates = \
-            self.momentum * layer.weight_momentums + \
-            (1.0 - self.momentum) * self.current_learning_rate * layer.dweights
+        weight_updates = self.momentum * layer.weight_momentums + (
+                1.0 - self.momentum) * self.current_learning_rate * layer.dweights
         layer.weight_momentums = weight_updates
 
-        bias_updates = \
-            self.momentum * layer.bias_momentums + \
-            (1.0 - self.momentum) * self.current_learning_rate * layer.dbiases
-        layer.bias_momentums = bias_updates
-
         layer.weights -= weight_updates
-        layer.biases -= bias_updates
 
     def post_update_params(self):
         self.iterations += 1
@@ -275,6 +261,7 @@ class OptimizerBFGS(OptimizerAbstract):
         self.decay = decay
         self.iterations = 0
         self.epsilon = epsilon
+        self.loss_func = None
 
     def pre_update_params(self):
         if self.decay:
@@ -294,20 +281,53 @@ class OptimizerBFGS(OptimizerAbstract):
         sk = flat_weights - layer.prev_weights
         yk = flat_dweights - layer.prev_dweights
 
-        rho_inv = yk @ sk.T
-        rho = 1 / (rho_inv + 0.1)
+        rho_inv = sk @ yk
+        if abs(rho_inv) < 0.00001:
+            rho = 1000
+        else:
+            rho = 1 / rho_inv
 
-        A1 = (I - rho * (yk @ sk.T))
-        A2 = (I - rho * (sk @ yk.T))
-        left = A1 @ (layer.H @ A2)
-        layer.H = left + rho * (yk @ yk.T)
+        A1 = (I - rho * (yk @ sk))
+        A2 = (I - rho * (sk @ yk))
+        left = A1 @ layer.H @ A2
+        layer.H = left + rho * (yk @ yk)
 
-        weight_update = self.current_learning_rate * (-layer.H @ flat_dweights)
+        direction = -layer.H @ flat_dweights
+
+        alpha, fail = weak_wolfe(layer, self.loss_func, direction, flat_dweights, self.current_learning_rate)
+        if fail:
+            pass
+
+        weight_update = alpha * direction
 
         layer.weights += weight_update.reshape((layer.weights.shape[0], layer.weights.shape[1]))
 
-        layer.prev_weights = layer.weights.flatten().copy()
-        layer.prev_dweights = layer.dweights.flatten().copy()
+        layer.prev_weights = layer.weights.flatten()
+        layer.prev_dweights = layer.dweights.flatten()
+
+    def fit(self, x, y, epochs=10000, loss_function=None):
+        self._validate_fit(loss_function)
+
+        for epoch in range(epochs):
+            def loss_func():
+                predictions = self.network.forward(x)
+                loss = self.network.loss_function.calculate(predictions, y)
+                self.network.backward(predictions, y)
+                return loss, predictions
+
+            self.loss_func = loss_func
+            loss, predictions = loss_func()
+
+            if (epoch % 1) == 0:
+                print(f'epoch: {epoch}, ' +
+                      f'loss: {loss:.3f} ' +
+                      f'lr: {self.current_learning_rate}')
+
+                self.losses[epoch] = loss
+
+            self.update_weights()
+
+        return self
 
     def post_update_params(self):
         self.iterations += 1

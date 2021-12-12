@@ -20,20 +20,6 @@ class ActivationReLU(ActivationAbstract):
         self.dinputs[self.inputs <= 0] = 0
 
 
-class ActivationLeakyReLU(ActivationAbstract):
-    ALPHA = 0.001
-
-    def forward(self, inputs):
-        self.inputs = inputs
-        self.output = leaky_relu(inputs, self.ALPHA)
-
-    def backward(self, d):
-        self.dinputs = d.copy()
-
-        # Zero gradient where input values were negative
-        self.dinputs[self.inputs <= 0] = self.ALPHA
-
-
 class ActivationLinear(ActivationAbstract):
     def forward(self, inputs):
         self.inputs = inputs
