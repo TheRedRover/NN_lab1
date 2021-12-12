@@ -1,56 +1,62 @@
 import time
+from typing import Callable
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from ai.layers.layer_activations import ActivationLinear, ActivationReLU
 from ai.layers.layer_dense import LayerDense
 from ai.losses import LossMeanSquaredError
 from ai.neural_network import NeuralNetwork
-from ai.optimizers import OptimizerBFGS, OptimizerCGF, OptimizerGDM
+from ai.optimizers import OptimizerGDM, OptimizerAbstract
 from utils.lab_01_get_data import create_dataset_lab_01
 
-X, y = create_dataset_lab_01(samples=1000)
+np.random.seed(42)
 
-loss_function = LossMeanSquaredError()
 
-# Раскоментировать нужную
+def test_optimizer(optimizer: Callable[[NeuralNetwork], OptimizerAbstract]):
+    neural_network = NeuralNetwork()
 
-# optimizer = OptimizerSGD(learning_rate=0.1, decay=1e-5, momentum=0.2)
-# optimizer = OptimizerGDM(learning_rate=.1, decay=1e-5, momentum=.9)
-# optimizer = OptimizerRMSprop(learning_rate=0.01, decay=1e-4)
-# optimizer = OptimizerAdagrad(learning_rate=0.005, decay=1e-4)
-# optimizer = OptimizerAdam(learning_rate=0.005, decay=1e-5)
-# optimizer = OptimizerCGF(learning_rate=0.1, decay=1e-3)
-optimizer = OptimizerBFGS(learning_rate=0.1, decay=1e-4)
+    neural_network.append_layer(LayerDense(1, 16, weight_regularizer_l2=0.001, bias_regularizer_l2=0.001))
+    neural_network.append_layer(ActivationReLU())
+    neural_network.append_layer(LayerDense(16, 16, weight_regularizer_l2=0.001, bias_regularizer_l2=0.001))
+    neural_network.append_layer(ActivationReLU())
+    neural_network.append_layer(LayerDense(16, 16, weight_regularizer_l2=0.001, bias_regularizer_l2=0.001))
+    neural_network.append_layer(ActivationReLU())
+    neural_network.append_layer(LayerDense(16, 16, weight_regularizer_l2=0.001, bias_regularizer_l2=0.001))
+    neural_network.append_layer(ActivationReLU())
+    neural_network.append_layer(LayerDense(16, 1, weight_regularizer_l2=0.001, bias_regularizer_l2=0.001))
+    neural_network.append_layer(ActivationLinear())
 
-neural_network = NeuralNetwork()
+    loss_function = LossMeanSquaredError()
+    neural_network.set_loss_function(loss_function)
 
-neural_network.append_layer(LayerDense(1, 16, weight_regularizer_l2=0.001, bias_regularizer_l2=0.001))
-neural_network.append_layer(ActivationReLU())
-neural_network.append_layer(LayerDense(16, 16, weight_regularizer_l2=0.001, bias_regularizer_l2=0.001))
-neural_network.append_layer(ActivationReLU())
-neural_network.append_layer(LayerDense(16, 16, weight_regularizer_l2=0.001, bias_regularizer_l2=0.001))
-neural_network.append_layer(ActivationReLU())
-neural_network.append_layer(LayerDense(16, 16, weight_regularizer_l2=0.001, bias_regularizer_l2=0.001))
-neural_network.append_layer(ActivationReLU())
-neural_network.append_layer(LayerDense(16, 1, weight_regularizer_l2=0.001, bias_regularizer_l2=0.001))
-neural_network.append_layer(ActivationLinear())
+    X, y = create_dataset_lab_01(samples=1000)
+    start_time = time.time()
+    opter = optimizer(neural_network)
+    opter.fit(X, y, epochs=20000)
+    print("--- %s seconds ---" % (time.time() - start_time))
+    losses = neural_network.losses
 
-neural_network.set_loss_function(loss_function)
-neural_network.set_optimizer(optimizer)
+    plt.plot(losses.keys(), losses.values())
+    plt.show()
 
-start_time = time.time()
-neural_network.fit(X, y, epochs=20000)
-print("--- %s seconds ---" % (time.time() - start_time))
-losses = neural_network.losses
+    X_test, y_test = create_dataset_lab_01()
+    predicted = neural_network.predict(X_test)
 
-plt.plot(losses.keys(), losses.values())
-plt.show()
+    plt.plot(X_test, y_test, label='test')
+    plt.plot(X_test, predicted, label='predict')
+    plt.legend()
+    plt.show()
 
-X_test, y_test = create_dataset_lab_01()
-predicted = neural_network.predict(X_test)
 
-plt.plot(X_test, y_test, label='test')
-plt.plot(X_test, predicted, label='predict')
-plt.legend()
-plt.show()
+opts = []
+# opts.append(lambda nn: OptimizerSGD(nn, learning_rate=0.1, decay=1e-5, momentum=0.2))
+# opts.append(lambda nn: OptimizerRMSprop(nn, learning_rate=0.01, decay=1e-4))
+# opts.append(lambda nn: OptimizerAdagrad(nn, learning_rate=0.005, decay=1e-4))
+# opts.append(lambda nn: OptimizerAdam(nn, learning_rate=0.005, decay=1e-5))
+opts.append(lambda nn: OptimizerGDM(nn, learning_rate=.1, decay=1e-5, momentum=.9))
+# opts.append(lambda nn: OptimizerCGF(nn, learning_rate=0.1, decay=1e-3))
+# opts.append(lambda nn: OptimizerBFGS(nn, learning_rate=0.1, decay=1e-4))
+for opt in opts:
+    test_optimizer(opt)

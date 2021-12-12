@@ -1,9 +1,15 @@
 import numpy as np
 
+from ai.neural_network import NeuralNetwork
+from config import LAYER_TYPE_COMPUTATIONAL
 
 class OptimizerAbstract:
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, network: NeuralNetwork, learning_rate: float, *args, **kwargs):
+        self.network = network
+        self.learning_rate = learning_rate
+        self.current_learning_rate = learning_rate
+        self.is_trained = False
+        self.losses = {}
 
     def pre_update_params(self):
         pass
@@ -14,11 +20,46 @@ class OptimizerAbstract:
     def post_update_params(self):
         pass
 
+    def update_weights(self):
+        self.pre_update_params()
+        for layer in self.network.layers:
+            if layer.type == LAYER_TYPE_COMPUTATIONAL:
+                self.update_params(layer)
+        self.post_update_params()
+
+    def fit(self, x, y, epochs=10000, loss_function=None):
+        self._validate_fit(loss_function)
+
+        for epoch in range(epochs):
+            predictions = self.network.forward(x)
+
+            loss = self.network.loss_function.calculate(predictions, y)
+            if (epoch % 100) == 0:
+                print(f'epoch: {epoch}, ' +
+                      f'loss: {loss:.3f} ' +
+                      f'lr: {self.current_learning_rate}')
+
+                self.losses[epoch] = loss
+
+            self.network.backward(predictions, y)
+            self.update_weights()
+
+        return self
+
+    def _validate_fit(self, loss_function=None):
+        if loss_function is not None:
+            self.network.set_loss_function(loss_function)
+
+        if len(self.network.layers) == 0 or self.network.layers is None:
+            raise ValueError("No layers were provided for the neural network.")
+
+        if self.network.loss_function is None:
+            raise ValueError("Loss function was not provided.")
+
 
 class OptimizerAdam(OptimizerAbstract):
-    def __init__(self, learning_rate=0.001, decay=0., epsilon=1e-7, beta_1=0.9, beta_2=0.999):
-        self.learning_rate = learning_rate
-        self.current_learning_rate = learning_rate
+    def __init__(self, network, learning_rate=0.001, decay=0., epsilon=1e-7, beta_1=0.9, beta_2=0.999):
+        super(OptimizerAdam, self).__init__(network, learning_rate)
         self.decay = decay
         self.iterations = 0
         self.epsilon = epsilon
@@ -58,7 +99,8 @@ class OptimizerAdam(OptimizerAbstract):
 
 
 class OptimizerSGD(OptimizerAbstract):
-    def __init__(self, learning_rate=0.001, decay=0., momentum=0.):
+    def __init__(self, network, learning_rate=0.001, decay=0., momentum=0.):
+        super(OptimizerSGD, self).__init__(network, learning_rate)
         self.learning_rate = learning_rate
         self.current_learning_rate = learning_rate
         self.decay = decay
@@ -67,8 +109,7 @@ class OptimizerSGD(OptimizerAbstract):
 
     def pre_update_params(self):
         if self.decay:
-            self.current_learning_rate = self.learning_rate * \
-                                         (1. / (1. + self.decay * self.iterations))
+            self.current_learning_rate = self.learning_rate * (1. / (1. + self.decay * self.iterations))
 
     def update_params(self, layer):
         if self.momentum:
@@ -76,20 +117,14 @@ class OptimizerSGD(OptimizerAbstract):
                 layer.weight_momentums = np.zeros_like(layer.weights)
                 layer.bias_momentums = np.zeros_like(layer.biases)
 
-            weight_updates = \
-                self.momentum * layer.weight_momentums - \
-                self.current_learning_rate * layer.dweights
+            weight_updates = self.momentum * layer.weight_momentums - self.current_learning_rate * layer.dweights
             layer.weight_momentums = weight_updates
 
-            bias_updates = \
-                self.momentum * layer.bias_momentums - \
-                self.current_learning_rate * layer.dbiases
+            bias_updates = self.momentum * layer.bias_momentums - self.current_learning_rate * layer.dbiases
             layer.bias_momentums = bias_updates
         else:
-            weight_updates = -self.current_learning_rate * \
-                             layer.dweights
-            bias_updates = -self.current_learning_rate * \
-                           layer.dbiases
+            weight_updates = -self.current_learning_rate * layer.dweights
+            bias_updates = -self.current_learning_rate * layer.dbiases
 
         layer.weights += weight_updates
         layer.biases += bias_updates
@@ -99,9 +134,8 @@ class OptimizerSGD(OptimizerAbstract):
 
 
 class OptimizerAdagrad(OptimizerAbstract):
-    def __init__(self, learning_rate=0.001, decay=0., epsilon=1e-7):
-        self.learning_rate = learning_rate
-        self.current_learning_rate = learning_rate
+    def __init__(self, network, learning_rate=0.001, decay=0., epsilon=1e-7):
+        super(OptimizerAdagrad, self).__init__(network, learning_rate)
         self.decay = decay
         self.epsilon = epsilon
         self.iterations = 0
@@ -119,22 +153,17 @@ class OptimizerAdagrad(OptimizerAbstract):
         layer.weight_cache += layer.dweights ** 2
         layer.bias_cache += layer.dbiases ** 2
 
-        layer.weights += -self.current_learning_rate * \
-                         layer.dweights / \
-                         (np.sqrt(layer.weight_cache) + self.epsilon)
-        layer.biases += -self.current_learning_rate * \
-                        layer.dbiases / \
-                        (np.sqrt(layer.bias_cache) + self.epsilon)
+        layer.weights += -self.current_learning_rate * layer.dweights / (np.sqrt(layer.weight_cache) + self.epsilon)
+        layer.biases += -self.current_learning_rate * layer.dbiases / (np.sqrt(layer.bias_cache) + self.epsilon)
 
     def post_update_params(self):
         self.iterations += 1
 
 
 class OptimizerRMSprop(OptimizerAbstract):
-    def __init__(self, learning_rate=0.001, decay=0., epsilon=1e-7,
+    def __init__(self, network, learning_rate=0.001, decay=0., epsilon=1e-7,
                  rho=0.9):
-        self.learning_rate = learning_rate
-        self.current_learning_rate = learning_rate
+        super(OptimizerRMSprop, self).__init__(network, learning_rate)
         self.decay = decay
         self.iterations = 0
         self.epsilon = epsilon
@@ -153,19 +182,16 @@ class OptimizerRMSprop(OptimizerAbstract):
         layer.weight_cache = self.rho * layer.weight_cache + (1 - self.rho) * layer.dweights ** 2
         layer.bias_cache = self.rho * layer.bias_cache + (1 - self.rho) * layer.dbiases ** 2
 
-        layer.weights += -self.current_learning_rate * layer.dweights / \
-                         (np.sqrt(layer.weight_cache) + self.epsilon)
-        layer.biases += -self.current_learning_rate * layer.dbiases / \
-                        (np.sqrt(layer.bias_cache) + self.epsilon)
+        layer.weights += -self.current_learning_rate * layer.dweights / (np.sqrt(layer.weight_cache) + self.epsilon)
+        layer.biases += -self.current_learning_rate * layer.dbiases / (np.sqrt(layer.bias_cache) + self.epsilon)
 
     def post_update_params(self):
         self.iterations += 1
 
 
 class OptimizerCGF(OptimizerAbstract):
-    def __init__(self, learning_rate=0.001, decay=0., epsilon=1e-7, max_update=10):
-        self.learning_rate = learning_rate
-        self.current_learning_rate = learning_rate
+    def __init__(self, network, learning_rate=0.001, decay=0., epsilon=1e-7, max_update=10):
+        super(OptimizerCGF, self).__init__(network, learning_rate)
         self.decay = decay
         self.iterations = 0
         self.epsilon = epsilon
@@ -199,11 +225,6 @@ class OptimizerCGF(OptimizerAbstract):
         layer.weight_p = -layer.dweights + beta_weights * layer.weight_p
         layer.bias_p = -layer.dbiases + beta_biases * layer.bias_p
 
-        # a = np.any(np.abs(layer.weight_p).flatten() > 1000)
-        # if a:
-        #     print("", end="")
-        #     pass
-
         layer.prev_dweights = layer.dweights.copy()
         layer.prev_dbiases = layer.dbiases.copy()
 
@@ -215,9 +236,8 @@ class OptimizerCGF(OptimizerAbstract):
 
 
 class OptimizerGDM(OptimizerAbstract):
-    def __init__(self, learning_rate=0.001, decay=0., momentum=0.):
-        self.learning_rate = learning_rate
-        self.current_learning_rate = learning_rate
+    def __init__(self, network, learning_rate=0.001, decay=0., momentum=0.):
+        super(OptimizerGDM, self).__init__(network, learning_rate)
         self.decay = decay
         self.iterations = 0
         self.momentum = momentum
@@ -250,9 +270,8 @@ class OptimizerGDM(OptimizerAbstract):
 
 
 class OptimizerBFGS(OptimizerAbstract):
-    def __init__(self, learning_rate=0.001, decay=0., epsilon=1e-7):
-        self.learning_rate = learning_rate
-        self.current_learning_rate = learning_rate
+    def __init__(self, network, learning_rate=0.001, decay=0., epsilon=1e-7):
+        super(OptimizerBFGS, self).__init__(network, learning_rate)
         self.decay = decay
         self.iterations = 0
         self.epsilon = epsilon
