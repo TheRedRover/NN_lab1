@@ -263,29 +263,32 @@ class OptimizerBFGS(OptimizerAbstract):
 
     # Update parameters
     def update_params(self, layer):
-        I = np.eye(layer.weights.shape[1])
+        flat_weights = layer.weights.flatten()
+        flat_dweights = layer.dweights.flatten()
+
+        I = np.eye(flat_weights.shape[0])
         if not hasattr(layer, f'prev_weights'):
             layer.H = I
-            layer.prev_weights = np.zeros_like(layer.weights)
-            layer.prev_dweights = np.zeros_like(layer.dweights)
+            layer.prev_weights = np.zeros_like(flat_weights)
+            layer.prev_dweights = np.zeros_like(flat_dweights)
 
-        sk = layer.weights - layer.prev_weights
-        yk = layer.dweights - layer.prev_dweights
+        sk = flat_weights - layer.prev_weights
+        yk = flat_dweights - layer.prev_dweights
 
-        rho_inv = yk.T @ sk
+        rho_inv = yk @ sk.T
         rho = 1 / (rho_inv + 0.1)
 
-        A1 = (I - rho * (yk.T @ sk))
-        A2 = (I - rho * (sk.T @ yk))
+        A1 = (I - rho * (yk @ sk.T))
+        A2 = (I - rho * (sk @ yk.T))
         left = A1 @ (layer.H @ A2)
-        layer.H = left + rho * (yk.T @ yk)
+        layer.H = left + rho * (yk @ yk.T)
 
-        weight_update = self.current_learning_rate * -(layer.H @ layer.dweights.T)
+        weight_update = self.current_learning_rate * (-layer.H @ flat_dweights)
 
-        layer.weights += weight_update.T
+        layer.weights += weight_update.reshape((layer.weights.shape[0], layer.weights.shape[1]))
 
-        layer.prev_weights = layer.weights.copy()
-        layer.prev_dweights = layer.dweights.copy()
+        layer.prev_weights = layer.weights.flatten().copy()
+        layer.prev_dweights = layer.dweights.flatten().copy()
 
     def post_update_params(self):
         self.iterations += 1
