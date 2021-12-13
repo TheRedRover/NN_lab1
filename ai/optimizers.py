@@ -277,26 +277,39 @@ class OptimizerBFGS(OptimizerAbstract):
             layer.H = I
             layer.prev_weights = np.zeros_like(flat_weights)
             layer.prev_dweights = np.zeros_like(flat_dweights)
+            layer.Bs = layer.prev_weights.dot(-self.current_learning_rate)
 
-        sk = flat_weights - layer.prev_weights
-        yk = flat_dweights - layer.prev_dweights
+        sk = (flat_weights - layer.prev_weights).reshape((flat_weights.shape[0], 1))
+        yk = (flat_dweights - layer.prev_dweights).reshape((flat_dweights.shape[0], 1))
 
-        rho_inv = sk @ yk
+        eps = 1e-1
+        ys = yk.T.dot(sk)
+        sBs = sk.T.dot(layer.Bs)
+
+        if ys < eps * sBs:
+            theta = ((1 - eps) * sBs) / (sBs - ys)
+            yk = (theta * yk.flatten() + (1 - theta) * layer.Bs).T
+
+        rho_inv = sk.flatten() @ yk.flatten()
         if abs(rho_inv) < 0.00001:
             rho = 1000
         else:
             rho = 1 / rho_inv
 
-        A1 = (I - rho * (yk @ sk))
-        A2 = (I - rho * (sk @ yk))
+        A1 = (I - rho * (sk @ yk.T))
+        A2 = (I - rho * (yk @ sk.T))
         left = A1 @ layer.H @ A2
-        layer.H = left + rho * (yk @ yk)
+        layer.H = left + rho * (sk @ sk.T)
 
         direction = -layer.H @ flat_dweights
 
         alpha, fail = weak_wolfe(layer, self.loss_func, direction, flat_dweights, self.current_learning_rate)
         if fail:
             pass
+        else:
+            pass
+
+        layer.Bs = layer.prev_weights.dot(-alpha)
 
         weight_update = alpha * direction
 
@@ -318,7 +331,7 @@ class OptimizerBFGS(OptimizerAbstract):
             self.loss_func = loss_func
             loss, predictions = loss_func()
 
-            if (epoch % 1) == 0:
+            if (epoch % 100) == 0:
                 print(f'epoch: {epoch}, ' +
                       f'loss: {loss:.3f} ' +
                       f'lr: {self.current_learning_rate}')

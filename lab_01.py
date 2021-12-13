@@ -57,6 +57,6 @@ opts = []
 # opts.append(lambda nn: OptimizerAdam(nn, learning_rate=0.005, decay=1e-5))
 # opts.append(lambda nn: OptimizerGDM(nn, learning_rate=.1, decay=1e-5, momentum=.9))
 # opts.append(lambda nn: OptimizerCGF(nn, learning_rate=0.1, decay=0.0005))
-opts.append(lambda nn: OptimizerBFGS(nn, learning_rate=1, decay=1e-4))
+opts.append(lambda nn: OptimizerBFGS(nn, learning_rate=0.5, decay=1e-4))
 for opt in opts:
     test_optimizer(opt)
