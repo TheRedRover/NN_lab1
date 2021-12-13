@@ -286,6 +286,7 @@ class OptimizerBFGS(OptimizerAbstract):
         ys = yk.T.dot(sk)
         sBs = sk.T.dot(layer.Bs)
 
+        # powell damping
         if ys < eps * sBs:
             theta = ((1 - eps) * sBs) / (sBs - ys)
             yk = (theta * yk.flatten() + (1 - theta) * layer.Bs).T

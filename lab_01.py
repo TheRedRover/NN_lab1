@@ -8,13 +8,13 @@ from ai.layers.layer_activations import ActivationLinear, ActivationReLU
 from ai.layers.layer_dense import LayerDense
 from ai.losses import LossMeanSquaredError
 from ai.neural_network import NeuralNetwork
-from ai.optimizers import OptimizerAbstract, OptimizerBFGS, OptimizerSGD, OptimizerGDM, OptimizerCGF
+from ai.optimizers import OptimizerAbstract, OptimizerBFGS
 from utils.lab_01_get_data import create_dataset_lab_01
 
 np.random.seed(42)
 
 
-def test_optimizer(optimizer: Callable[[NeuralNetwork], OptimizerAbstract]):
+def test_optimizer(optimizer: Callable[[NeuralNetwork], OptimizerAbstract], epochs=10000):
     neural_network = NeuralNetwork()
 
     neural_network.append_layer(LayerDense(1, 32, weight_regularizer_l2=0.001))
@@ -34,7 +34,7 @@ def test_optimizer(optimizer: Callable[[NeuralNetwork], OptimizerAbstract]):
     X, y = create_dataset_lab_01(samples=1000)
     start_time = time.time()
     opter = optimizer(neural_network)
-    opter.fit(X, y, epochs=20000)
+    opter.fit(X, y, epochs=epochs)
     print("--- %s seconds ---" % (time.time() - start_time))
     losses = opter.losses
 
@@ -51,12 +51,12 @@ def test_optimizer(optimizer: Callable[[NeuralNetwork], OptimizerAbstract]):
 
 
 opts = []
-# opts.append(lambda nn: OptimizerSGD(nn, learning_rate=0.01, decay=1e-5, momentum=0.2))
-# opts.append(lambda nn: OptimizerRMSprop(nn, learning_rate=0.01, decay=1e-4))
-# opts.append(lambda nn: OptimizerAdagrad(nn, learning_rate=0.005, decay=1e-4))
-# opts.append(lambda nn: OptimizerAdam(nn, learning_rate=0.005, decay=1e-5))
-# opts.append(lambda nn: OptimizerGDM(nn, learning_rate=.1, decay=1e-5, momentum=.9))
-# opts.append(lambda nn: OptimizerCGF(nn, learning_rate=0.1, decay=0.0005))
-opts.append(lambda nn: OptimizerBFGS(nn, learning_rate=0.5, decay=1e-4))
-for opt in opts:
-    test_optimizer(opt)
+# opts.append((lambda nn: OptimizerSGD(nn, learning_rate=0.01, decay=1e-5, momentum=0.2),10000))
+# opts.append((lambda nn: OptimizerRMSprop(nn, learning_rate=0.01, decay=1e-4),10000))
+# opts.append((lambda nn: OptimizerAdagrad(nn, learning_rate=0.005, decay=1e-4),10000))
+# opts.append((lambda nn: OptimizerAdam(nn, learning_rate=0.005, decay=1e-5),10000))
+# opts.append((lambda nn: OptimizerGDM(nn, learning_rate=.1, decay=1e-5, momentum=.9),10000))
+# opts.append((lambda nn: OptimizerCGF(nn, learning_rate=0.1, decay=0.0005),10000))
+opts.append((lambda nn: OptimizerBFGS(nn, learning_rate=1, decay=1e-2), 1000))
+for opt, epochs in opts:
+    test_optimizer(opt, epochs)
