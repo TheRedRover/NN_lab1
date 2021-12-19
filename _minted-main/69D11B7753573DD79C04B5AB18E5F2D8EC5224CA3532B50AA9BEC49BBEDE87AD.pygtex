@@ -1,0 +1,26 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{class} \PYG{n+nc}{OptimizerGDM}\PYG{p}{(}\PYG{n}{OptimizerAbstract}\PYG{p}{):}
+    \PYG{k}{def} \PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{network}\PYG{p}{,} \PYG{n}{learning\PYGZus{}rate}\PYG{o}{=}\PYG{l+m+mf}{0.001}\PYG{p}{,} \PYG{n}{decay}\PYG{o}{=}\PYG{l+m+mf}{0.}\PYG{p}{,} \PYG{n}{momentum}\PYG{o}{=}\PYG{l+m+mf}{0.}\PYG{p}{):}
+        \PYG{n+nb}{super}\PYG{p}{(}\PYG{n}{OptimizerGDM}\PYG{p}{,} \PYG{n+nb+bp}{self}\PYG{p}{)}\PYG{o}{.}\PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n}{network}\PYG{p}{,} \PYG{n}{learning\PYGZus{}rate}\PYG{p}{)}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{decay} \PYG{o}{=} \PYG{n}{decay}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{iterations} \PYG{o}{=} \PYG{l+m+mi}{0}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{momentum} \PYG{o}{=} \PYG{n}{momentum}
+
+    \PYG{k}{def} \PYG{n+nf}{pre\PYGZus{}update\PYGZus{}params}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{):}
+        \PYG{k}{if} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{decay}\PYG{p}{:}
+            \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{current\PYGZus{}learning\PYGZus{}rate} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{learning\PYGZus{}rate} \PYG{o}{*} \PYGZbs{}
+                                         \PYG{p}{(}\PYG{l+m+mf}{1.} \PYG{o}{/} \PYG{p}{(}\PYG{l+m+mf}{1.} \PYG{o}{+} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{decay} \PYG{o}{*} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{iterations}\PYG{p}{))}
+
+    \PYG{k}{def} \PYG{n+nf}{update\PYGZus{}params}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{layer}\PYG{p}{):}
+        \PYG{k}{if} \PYG{o+ow}{not} \PYG{n+nb}{hasattr}\PYG{p}{(}\PYG{n}{layer}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}weight\PYGZus{}momentums\PYGZsq{}}\PYG{p}{):}
+            \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weight\PYGZus{}momentums} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros\PYGZus{}like}\PYG{p}{(}\PYG{n}{layer}\PYG{o}{.}\PYG{n}{weights}\PYG{p}{)}
+
+        \PYG{n}{weight\PYGZus{}updates} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{momentum} \PYG{o}{*} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weight\PYGZus{}momentums} \PYG{o}{+} \PYG{p}{(}
+                \PYG{l+m+mf}{1.0} \PYG{o}{\PYGZhy{}} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{momentum}\PYG{p}{)} \PYG{o}{*} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{current\PYGZus{}learning\PYGZus{}rate} \PYG{o}{*} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{dweights}
+        \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weight\PYGZus{}momentums} \PYG{o}{=} \PYG{n}{weight\PYGZus{}updates}
+
+        \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weights} \PYG{o}{\PYGZhy{}=} \PYG{n}{weight\PYGZus{}updates}
+
+    \PYG{k}{def} \PYG{n+nf}{post\PYGZus{}update\PYGZus{}params}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{):}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{iterations} \PYG{o}{+=} \PYG{l+m+mi}{1}
+\end{Verbatim}

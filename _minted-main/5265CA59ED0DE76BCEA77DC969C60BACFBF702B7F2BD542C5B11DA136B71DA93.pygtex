@@ -1,0 +1,92 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{class} \PYG{n+nc}{OptimizerBFGS}\PYG{p}{(}\PYG{n}{OptimizerAbstract}\PYG{p}{):}
+    \PYG{k}{def} \PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{network}\PYG{p}{,} \PYG{n}{learning\PYGZus{}rate}\PYG{o}{=}\PYG{l+m+mf}{0.001}\PYG{p}{,} \PYG{n}{decay}\PYG{o}{=}\PYG{l+m+mf}{0.}\PYG{p}{,} \PYG{n}{epsilon}\PYG{o}{=}\PYG{l+m+mf}{1e\PYGZhy{}7}\PYG{p}{):}
+        \PYG{n+nb}{super}\PYG{p}{(}\PYG{n}{OptimizerBFGS}\PYG{p}{,} \PYG{n+nb+bp}{self}\PYG{p}{)}\PYG{o}{.}\PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n}{network}\PYG{p}{,} \PYG{n}{learning\PYGZus{}rate}\PYG{p}{)}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{decay} \PYG{o}{=} \PYG{n}{decay}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{iterations} \PYG{o}{=} \PYG{l+m+mi}{0}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{epsilon} \PYG{o}{=} \PYG{n}{epsilon}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{loss\PYGZus{}func} \PYG{o}{=} \PYG{k+kc}{None}
+
+    \PYG{k}{def} \PYG{n+nf}{pre\PYGZus{}update\PYGZus{}params}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{):}
+        \PYG{k}{if} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{decay}\PYG{p}{:}
+            \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{current\PYGZus{}learning\PYGZus{}rate} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{learning\PYGZus{}rate} \PYG{o}{*} \PYG{p}{(}\PYG{l+m+mf}{1.} \PYG{o}{/} \PYG{p}{(}\PYG{l+m+mf}{1.} \PYG{o}{+} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{decay} \PYG{o}{*} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{iterations}\PYG{p}{))}
+
+    \PYG{c+c1}{\PYGZsh{} Update parameters}
+    \PYG{k}{def} \PYG{n+nf}{update\PYGZus{}params}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{layer}\PYG{p}{):}
+        \PYG{n}{flat\PYGZus{}weights} \PYG{o}{=} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weights}\PYG{o}{.}\PYG{n}{flatten}\PYG{p}{()}
+        \PYG{n}{flat\PYGZus{}dweights} \PYG{o}{=} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{dweights}\PYG{o}{.}\PYG{n}{flatten}\PYG{p}{()}
+
+        \PYG{n}{I} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{eye}\PYG{p}{(}\PYG{n}{flat\PYGZus{}weights}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{])}
+        \PYG{k}{if} \PYG{o+ow}{not} \PYG{n+nb}{hasattr}\PYG{p}{(}\PYG{n}{layer}\PYG{p}{,} \PYG{l+s+sa}{f}\PYG{l+s+s1}{\PYGZsq{}prev\PYGZus{}weights\PYGZsq{}}\PYG{p}{):}
+            \PYG{n}{layer}\PYG{o}{.}\PYG{n}{H} \PYG{o}{=} \PYG{n}{I}
+            \PYG{n}{layer}\PYG{o}{.}\PYG{n}{prev\PYGZus{}weights} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros\PYGZus{}like}\PYG{p}{(}\PYG{n}{flat\PYGZus{}weights}\PYG{p}{)}
+            \PYG{n}{layer}\PYG{o}{.}\PYG{n}{prev\PYGZus{}dweights} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros\PYGZus{}like}\PYG{p}{(}\PYG{n}{flat\PYGZus{}dweights}\PYG{p}{)}
+            \PYG{n}{layer}\PYG{o}{.}\PYG{n}{Bs} \PYG{o}{=} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{prev\PYGZus{}weights}\PYG{o}{.}\PYG{n}{dot}\PYG{p}{(}\PYG{o}{\PYGZhy{}}\PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{current\PYGZus{}learning\PYGZus{}rate}\PYG{p}{)}
+
+        \PYG{n}{sk} \PYG{o}{=} \PYG{p}{(}\PYG{n}{flat\PYGZus{}weights} \PYG{o}{\PYGZhy{}} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{prev\PYGZus{}weights}\PYG{p}{)}\PYG{o}{.}\PYG{n}{reshape}\PYG{p}{((}\PYG{n}{flat\PYGZus{}weights}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{],} \PYG{l+m+mi}{1}\PYG{p}{))}
+        \PYG{n}{yk} \PYG{o}{=} \PYG{p}{(}\PYG{n}{flat\PYGZus{}dweights} \PYG{o}{\PYGZhy{}} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{prev\PYGZus{}dweights}\PYG{p}{)}\PYG{o}{.}\PYG{n}{reshape}\PYG{p}{((}\PYG{n}{flat\PYGZus{}dweights}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{],} \PYG{l+m+mi}{1}\PYG{p}{))}
+
+        \PYG{n}{eps} \PYG{o}{=} \PYG{l+m+mf}{1e\PYGZhy{}1}
+        \PYG{n}{ys} \PYG{o}{=} \PYG{n}{yk}\PYG{o}{.}\PYG{n}{T}\PYG{o}{.}\PYG{n}{dot}\PYG{p}{(}\PYG{n}{sk}\PYG{p}{)}
+        \PYG{n}{sBs} \PYG{o}{=} \PYG{n}{sk}\PYG{o}{.}\PYG{n}{T}\PYG{o}{.}\PYG{n}{dot}\PYG{p}{(}\PYG{n}{layer}\PYG{o}{.}\PYG{n}{Bs}\PYG{p}{)}
+
+        \PYG{c+c1}{\PYGZsh{} powell damping}
+        \PYG{k}{if} \PYG{n}{ys} \PYG{o}{\PYGZlt{}} \PYG{n}{eps} \PYG{o}{*} \PYG{n}{sBs}\PYG{p}{:}
+            \PYG{n}{theta} \PYG{o}{=} \PYG{p}{((}\PYG{l+m+mi}{1} \PYG{o}{\PYGZhy{}} \PYG{n}{eps}\PYG{p}{)} \PYG{o}{*} \PYG{n}{sBs}\PYG{p}{)} \PYG{o}{/} \PYG{p}{(}\PYG{n}{sBs} \PYG{o}{\PYGZhy{}} \PYG{n}{ys}\PYG{p}{)}
+            \PYG{n}{yk} \PYG{o}{=} \PYG{p}{(}\PYG{n}{theta} \PYG{o}{*} \PYG{n}{yk}\PYG{o}{.}\PYG{n}{flatten}\PYG{p}{()} \PYG{o}{+} \PYG{p}{(}\PYG{l+m+mi}{1} \PYG{o}{\PYGZhy{}} \PYG{n}{theta}\PYG{p}{)} \PYG{o}{*} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{Bs}\PYG{p}{)}\PYG{o}{.}\PYG{n}{T}
+
+        \PYG{n}{rho\PYGZus{}inv} \PYG{o}{=} \PYG{n}{sk}\PYG{o}{.}\PYG{n}{flatten}\PYG{p}{()} \PYG{o}{@} \PYG{n}{yk}\PYG{o}{.}\PYG{n}{flatten}\PYG{p}{()}
+        \PYG{k}{if} \PYG{n+nb}{abs}\PYG{p}{(}\PYG{n}{rho\PYGZus{}inv}\PYG{p}{)} \PYG{o}{\PYGZlt{}} \PYG{l+m+mf}{0.00001}\PYG{p}{:}
+            \PYG{n}{rho} \PYG{o}{=} \PYG{l+m+mi}{1000}
+        \PYG{k}{else}\PYG{p}{:}
+            \PYG{n}{rho} \PYG{o}{=} \PYG{l+m+mi}{1} \PYG{o}{/} \PYG{n}{rho\PYGZus{}inv}
+
+        \PYG{n}{A1} \PYG{o}{=} \PYG{p}{(}\PYG{n}{I} \PYG{o}{\PYGZhy{}} \PYG{n}{rho} \PYG{o}{*} \PYG{p}{(}\PYG{n}{sk} \PYG{o}{@} \PYG{n}{yk}\PYG{o}{.}\PYG{n}{T}\PYG{p}{))}
+        \PYG{n}{A2} \PYG{o}{=} \PYG{p}{(}\PYG{n}{I} \PYG{o}{\PYGZhy{}} \PYG{n}{rho} \PYG{o}{*} \PYG{p}{(}\PYG{n}{yk} \PYG{o}{@} \PYG{n}{sk}\PYG{o}{.}\PYG{n}{T}\PYG{p}{))}
+        \PYG{n}{left} \PYG{o}{=} \PYG{n}{A1} \PYG{o}{@} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{H} \PYG{o}{@} \PYG{n}{A2}
+        \PYG{n}{layer}\PYG{o}{.}\PYG{n}{H} \PYG{o}{=} \PYG{n}{left} \PYG{o}{+} \PYG{n}{rho} \PYG{o}{*} \PYG{p}{(}\PYG{n}{sk} \PYG{o}{@} \PYG{n}{sk}\PYG{o}{.}\PYG{n}{T}\PYG{p}{)}
+
+        \PYG{n}{direction} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{n}{layer}\PYG{o}{.}\PYG{n}{H} \PYG{o}{@} \PYG{n}{flat\PYGZus{}dweights}
+
+        \PYG{n}{alpha}\PYG{p}{,} \PYG{n}{fail} \PYG{o}{=} \PYG{n}{weak\PYGZus{}wolfe}\PYG{p}{(}\PYG{n}{layer}\PYG{p}{,} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{loss\PYGZus{}func}\PYG{p}{,} \PYG{n}{direction}\PYG{p}{,} \PYG{n}{flat\PYGZus{}dweights}\PYG{p}{,} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{current\PYGZus{}learning\PYGZus{}rate}\PYG{p}{)}
+        \PYG{k}{if} \PYG{n}{fail}\PYG{p}{:}
+            \PYG{k}{pass}
+        \PYG{k}{else}\PYG{p}{:}
+            \PYG{k}{pass}
+
+        \PYG{n}{layer}\PYG{o}{.}\PYG{n}{Bs} \PYG{o}{=} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{prev\PYGZus{}weights}\PYG{o}{.}\PYG{n}{dot}\PYG{p}{(}\PYG{o}{\PYGZhy{}}\PYG{n}{alpha}\PYG{p}{)}
+
+        \PYG{n}{weight\PYGZus{}update} \PYG{o}{=} \PYG{n}{alpha} \PYG{o}{*} \PYG{n}{direction}
+
+        \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weights} \PYG{o}{+=} \PYG{n}{weight\PYGZus{}update}\PYG{o}{.}\PYG{n}{reshape}\PYG{p}{((}\PYG{n}{layer}\PYG{o}{.}\PYG{n}{weights}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{],} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weights}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{]))}
+
+        \PYG{n}{layer}\PYG{o}{.}\PYG{n}{prev\PYGZus{}weights} \PYG{o}{=} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weights}\PYG{o}{.}\PYG{n}{flatten}\PYG{p}{()}
+        \PYG{n}{layer}\PYG{o}{.}\PYG{n}{prev\PYGZus{}dweights} \PYG{o}{=} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{dweights}\PYG{o}{.}\PYG{n}{flatten}\PYG{p}{()}
+
+    \PYG{k}{def} \PYG{n+nf}{fit}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{x}\PYG{p}{,} \PYG{n}{y}\PYG{p}{,} \PYG{n}{epochs}\PYG{o}{=}\PYG{l+m+mi}{10000}\PYG{p}{,} \PYG{n}{loss\PYGZus{}function}\PYG{o}{=}\PYG{k+kc}{None}\PYG{p}{):}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{\PYGZus{}validate\PYGZus{}fit}\PYG{p}{(}\PYG{n}{loss\PYGZus{}function}\PYG{p}{)}
+
+        \PYG{k}{for} \PYG{n}{epoch} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{n}{epochs}\PYG{p}{):}
+            \PYG{k}{def} \PYG{n+nf}{loss\PYGZus{}func}\PYG{p}{():}
+                \PYG{n}{predictions} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{network}\PYG{o}{.}\PYG{n}{forward}\PYG{p}{(}\PYG{n}{x}\PYG{p}{)}
+                \PYG{n}{loss} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{network}\PYG{o}{.}\PYG{n}{loss\PYGZus{}function}\PYG{o}{.}\PYG{n}{calculate}\PYG{p}{(}\PYG{n}{predictions}\PYG{p}{,} \PYG{n}{y}\PYG{p}{)}
+                \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{network}\PYG{o}{.}\PYG{n}{backward}\PYG{p}{(}\PYG{n}{predictions}\PYG{p}{,} \PYG{n}{y}\PYG{p}{)}
+                \PYG{k}{return} \PYG{n}{loss}\PYG{p}{,} \PYG{n}{predictions}
+
+            \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{loss\PYGZus{}func} \PYG{o}{=} \PYG{n}{loss\PYGZus{}func}
+            \PYG{n}{loss}\PYG{p}{,} \PYG{n}{predictions} \PYG{o}{=} \PYG{n}{loss\PYGZus{}func}\PYG{p}{()}
+
+            \PYG{k}{if} \PYG{p}{(}\PYG{n}{epoch} \PYG{o}{\PYGZpc{}} \PYG{l+m+mi}{100}\PYG{p}{)} \PYG{o}{==} \PYG{l+m+mi}{0}\PYG{p}{:}
+                \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+sa}{f}\PYG{l+s+s1}{\PYGZsq{}epoch: }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{epoch}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s1}{, \PYGZsq{}} \PYG{o}{+}
+                      \PYG{l+s+sa}{f}\PYG{l+s+s1}{\PYGZsq{}loss: }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{loss}\PYG{l+s+si}{:}\PYG{l+s+s1}{.3f}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s1}{ \PYGZsq{}} \PYG{o}{+}
+                      \PYG{l+s+sa}{f}\PYG{l+s+s1}{\PYGZsq{}lr: }\PYG{l+s+si}{\PYGZob{}}\PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{current\PYGZus{}learning\PYGZus{}rate}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s1}{\PYGZsq{}}\PYG{p}{)}
+
+                \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{losses}\PYG{p}{[}\PYG{n}{epoch}\PYG{p}{]} \PYG{o}{=} \PYG{n}{loss}
+
+            \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{update\PYGZus{}weights}\PYG{p}{()}
+
+        \PYG{k}{return} \PYG{n+nb+bp}{self}
+
+    \PYG{k}{def} \PYG{n+nf}{post\PYGZus{}update\PYGZus{}params}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{):}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{iterations} \PYG{o}{+=} \PYG{l+m+mi}{1}
+\end{Verbatim}

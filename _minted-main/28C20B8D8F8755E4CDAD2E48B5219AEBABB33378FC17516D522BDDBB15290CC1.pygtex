@@ -1,0 +1,38 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{class} \PYG{n+nc}{OptimizerCGF}\PYG{p}{(}\PYG{n}{OptimizerAbstract}\PYG{p}{):}
+    \PYG{k}{def} \PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{network}\PYG{p}{,} \PYG{n}{learning\PYGZus{}rate}\PYG{o}{=}\PYG{l+m+mf}{0.001}\PYG{p}{,} \PYG{n}{decay}\PYG{o}{=}\PYG{l+m+mf}{0.}\PYG{p}{,} \PYG{n}{epsilon}\PYG{o}{=}\PYG{l+m+mf}{1e\PYGZhy{}7}\PYG{p}{,} \PYG{n}{max\PYGZus{}update}\PYG{o}{=}\PYG{l+m+mi}{10}\PYG{p}{):}
+        \PYG{n+nb}{super}\PYG{p}{(}\PYG{n}{OptimizerCGF}\PYG{p}{,} \PYG{n+nb+bp}{self}\PYG{p}{)}\PYG{o}{.}\PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n}{network}\PYG{p}{,} \PYG{n}{learning\PYGZus{}rate}\PYG{p}{)}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{decay} \PYG{o}{=} \PYG{n}{decay}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{iterations} \PYG{o}{=} \PYG{l+m+mi}{0}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{epsilon} \PYG{o}{=} \PYG{n}{epsilon}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{max\PYGZus{}update} \PYG{o}{=} \PYG{n}{max\PYGZus{}update}
+
+    \PYG{k}{def} \PYG{n+nf}{pre\PYGZus{}update\PYGZus{}params}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{):}
+        \PYG{k}{if} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{decay}\PYG{p}{:}
+            \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{current\PYGZus{}learning\PYGZus{}rate} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{learning\PYGZus{}rate} \PYG{o}{*} \PYG{p}{(}\PYG{l+m+mf}{1.} \PYG{o}{/} \PYG{p}{(}\PYG{l+m+mf}{1.} \PYG{o}{+} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{decay} \PYG{o}{*} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{iterations}\PYG{p}{))}
+
+    \PYG{c+c1}{\PYGZsh{} Update parameters}
+    \PYG{k}{def} \PYG{n+nf}{update\PYGZus{}params}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{layer}\PYG{p}{):}
+        \PYG{k}{def} \PYG{n+nf}{calc\PYGZus{}beta}\PYG{p}{(}\PYG{n}{dweights}\PYG{p}{,} \PYG{n}{dweights\PYGZus{}prev}\PYG{p}{):}
+            \PYG{k}{assert} \PYG{n}{dweights}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{==} \PYG{n}{dweights}\PYG{o}{.}\PYG{n}{size}
+            \PYG{k}{assert} \PYG{n}{dweights\PYGZus{}prev}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{o}{==} \PYG{n}{dweights\PYGZus{}prev}\PYG{o}{.}\PYG{n}{size}
+            \PYG{k}{return} \PYG{n}{dweights}\PYG{o}{.}\PYG{n}{dot}\PYG{p}{(}\PYG{n}{dweights}\PYG{p}{)} \PYG{o}{/} \PYG{p}{(}\PYG{n}{dweights\PYGZus{}prev}\PYG{o}{.}\PYG{n}{dot}\PYG{p}{(}\PYG{n}{dweights\PYGZus{}prev}\PYG{p}{)} \PYG{o}{+} \PYG{l+m+mi}{1}\PYG{p}{)}
+
+        \PYG{k}{if} \PYG{o+ow}{not} \PYG{n+nb}{hasattr}\PYG{p}{(}\PYG{n}{layer}\PYG{p}{,} \PYG{l+s+s1}{\PYGZsq{}prev\PYGZus{}dweights\PYGZsq{}}\PYG{p}{):}
+            \PYG{n}{layer}\PYG{o}{.}\PYG{n}{prev\PYGZus{}dweights} \PYG{o}{=} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{dweights}\PYG{o}{.}\PYG{n}{copy}\PYG{p}{()}
+            \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weight\PYGZus{}p} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros\PYGZus{}like}\PYG{p}{(}\PYG{o}{\PYGZhy{}}\PYG{n}{layer}\PYG{o}{.}\PYG{n}{dweights}\PYG{p}{)}
+
+        \PYG{n}{weight\PYGZus{}update} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{current\PYGZus{}learning\PYGZus{}rate} \PYG{o}{*} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weight\PYGZus{}p}
+
+        \PYG{n}{beta\PYGZus{}weights} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{array}\PYG{p}{([}\PYG{n}{calc\PYGZus{}beta}\PYG{p}{(}\PYG{n}{dweight}\PYG{p}{,} \PYG{n}{dweight\PYGZus{}prev}\PYG{p}{)} \PYG{k}{for} \PYG{p}{(}\PYG{n}{dweight}\PYG{p}{,} \PYG{n}{dweight\PYGZus{}prev}\PYG{p}{)} \PYG{o+ow}{in}
+                                 \PYG{n+nb}{zip}\PYG{p}{(}\PYG{n}{layer}\PYG{o}{.}\PYG{n}{dweights}\PYG{o}{.}\PYG{n}{T}\PYG{p}{,} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{prev\PYGZus{}dweights}\PYG{o}{.}\PYG{n}{T}\PYG{p}{)])}
+
+        \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weight\PYGZus{}p} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{n}{layer}\PYG{o}{.}\PYG{n}{dweights} \PYG{o}{+} \PYG{n}{beta\PYGZus{}weights} \PYG{o}{*} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weight\PYGZus{}p}
+
+        \PYG{n}{layer}\PYG{o}{.}\PYG{n}{prev\PYGZus{}dweights} \PYG{o}{=} \PYG{n}{layer}\PYG{o}{.}\PYG{n}{dweights}\PYG{o}{.}\PYG{n}{copy}\PYG{p}{()}
+
+        \PYG{n}{layer}\PYG{o}{.}\PYG{n}{weights} \PYG{o}{+=} \PYG{n}{weight\PYGZus{}update}
+
+    \PYG{k}{def} \PYG{n+nf}{post\PYGZus{}update\PYGZus{}params}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{):}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{iterations} \PYG{o}{+=} \PYG{l+m+mi}{1}
+\end{Verbatim}
